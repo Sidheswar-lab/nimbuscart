@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NimbusCart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #222;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f1f1f1;
+        }
+
+        #error {
+            display: none;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background: #ffe5e5;
+            color: #c00;
+        }
+
+        @media (max-width: 700px) {
+            form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>NimbusCart</h1>
+
+        <div id="error"></div>
+
+        <!-- Add Product -->
+        <div class="card">
+            <h2>Add Product</h2>
+
+            <form id="productForm">
+
+                <input
+                    type="text"
+                    id="name"
+                    placeholder="Product name"
+                    required
+                >
+
+                <input
+                    type="number"
+                    id="price"
+                    placeholder="Price"
+                    step="0.01"
+                    min="0"
+                    required
+                >
+
+                <input
+                    type="number"
+                    id="stock"
+                    placeholder="Stock"
+                    min="0"
+                    required
+                >
+
+                <button type="submit">
+                    Add Product
+                </button>
+
+            </form>
+        </div>
+
+        <!-- Products -->
+        <div class="card">
+
+            <h2>Products</h2>
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+
+                <tbody id="productsTable">
+                    <!-- Products will be inserted here -->
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        const productsTable = document.getElementById("productsTable");
+        const productForm = document.getElementById("productForm");
+        const errorDiv = document.getElementById("error");
+
+
+        // Display error message
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = "block";
+        }
+
+
+        // Hide error message
+        function clearError() {
+            errorDiv.textContent = "";
+            errorDiv.style.display = "none";
+        }
+
+
+        // Load products
+        async function loadProducts() {
+
+            clearError();
+
+            try {
+
+                const response = await fetch("http://localhost:3000/api/items");
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch products");
+                }
+
+                const products = await response.json();
+
+                productsTable.innerHTML = "";
+
+                products.forEach(product => {
+
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${product.name}</td>
+                        <td>${product.price}</td>
+                        <td>${product.stock}</td>
+                    `;
+
+                    productsTable.appendChild(row);
+                });
+
+            } catch (error) {
+
+                console.error(error);
+
+                showError(
+                    "Unable to load products. Please try again."
+                );
+            }
+        }
+
+
+        // Add product
+        productForm.addEventListener("submit", async (event) => {
+
+            event.preventDefault();
+
+            clearError();
+
+            const name = document.getElementById("name").value;
+            const price = Number(
+                document.getElementById("price").value
+            );
+            const stock = Number(
+                document.getElementById("stock").value
+            );
+
+            try {
+
+                const response = await fetch("http://localhost:3000/api/items", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        name,
+                        price,
+                        stock
+                    })
+
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to create product");
+                }
+
+                productForm.reset();
+
+                // Refresh table after successful POST
+                await loadProducts();
+
+            } catch (error) {
+
+                console.error(error);
+
+                showError(
+                    "Unable to add product. Please try again."
+                );
+            }
+
+        });
+
+
+        // Load products when page opens
+        loadProducts();
+
+    </script>
+
+</body>
+</html>
